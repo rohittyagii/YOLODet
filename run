@@ -1,0 +1,7 @@
+import sys
+from run import main
+
+
+if __name__ == "__main__":
+    # Compatibility entrypoint for accidental command: python run run.py
+    raise SystemExit(main())

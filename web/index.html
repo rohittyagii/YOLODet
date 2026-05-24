@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YOLO Browser Webcam Face Detection</title>
+  <style>
+    :root {
+      --bg: #f2f6f5;
+      --panel: #ffffff;
+      --ink: #102a24;
+      --muted: #61736d;
+      --accent: #0a8f6a;
+      --accent-2: #f4a300;
+      --danger: #d62839;
+      --line: #d9e4df;
+      --soft: #eef5f2;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 20%, #d8f3dc 0%, transparent 35%),
+        radial-gradient(circle at 85% 10%, #ffefc2 0%, transparent 30%),
+        linear-gradient(145deg, #eef6f2, #f7fbfa);
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .app {
+      width: min(1100px, 100%);
+      background: var(--panel);
+      border-radius: 20px;
+      box-shadow: 0 18px 50px rgba(18, 38, 32, 0.17);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    .controls {
+      padding: 22px;
+      background: linear-gradient(180deg, #ffffff, #f5f9f8);
+      border-right: 1px solid #e4ece9;
+    }
+
+    .controls h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .controls p {
+      margin: 8px 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 260px;
+    }
+
+    .group { margin-bottom: 16px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: var(--muted);
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      font-size: 14px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #88b8a8;
+      box-shadow: 0 0 0 3px rgba(10, 143, 106, 0.14);
+    }
+
+    button {
+      background: var(--ink);
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.12s ease;
+      margin-top: 8px;
+      font-weight: 600;
+    }
+
+    button:hover { transform: translateY(-1px); opacity: 0.95; }
+    .btn-accent { background: var(--accent); }
+    .btn-stop { background: var(--danger); }
+
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      background: #eef6f2;
+      font-size: 13px;
+      color: #244a3f;
+      border: 1px solid #d8e8e1;
+    }
+
+    .viewer {
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+      grid-template-rows: auto 1fr;
+      align-content: start;
+    }
+
+    .metrics {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+
+    .chip {
+      background: linear-gradient(145deg, #f3f8f6, #e8f1ed);
+      border: 1px solid #dbe8e2;
+      border-radius: 12px;
+      padding: 9px 12px;
+      font-size: 13px;
+      color: #22443a;
+      min-width: 120px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .checkbox-row input {
+      width: auto;
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #c8d8d2;
+      border: 1px solid #d5e3de;
+    }
+
+    video, canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    #overlay { pointer-events: none; }
+
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #6f857d;
+      margin: 0 0 8px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 930px) {
+      .app { grid-template-columns: 1fr; }
+      .controls { border-right: none; border-bottom: 1px solid #e4ece9; }
+      .controls h1 { font-size: 26px; }
+      .viewer { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="controls">
+      <div class="section-title">Realtime Detection</div>
+      <h1>YOLO Browser Webcam</h1>
+      <p>Reliable webcam in browser + Python YOLO inference backend.</p>
+
+      <div class="group">
+        <label for="providerSelect">Model Provider</label>
+        <select id="providerSelect"></select>
+      </div>
+
+      <div class="group">
+        <label for="customUrl">Custom Model URL (optional)</label>
+        <input id="customUrl" type="text" placeholder="https://.../face-model.pt" />
+      </div>
+
+      <div class="group">
+        <label for="classIds">Class Filter (comma ids)</label>
+        <input id="classIds" type="text" value="0" />
+      </div>
+
+      <div class="group">
+        <div class="checkbox-row">
+          <input id="limitClassZero" type="checkbox" checked />
+          <label for="limitClassZero">Limit to class 0 only</label>
+        </div>
+      </div>
+
+      <div class="group">
+        <label for="cameraSelect">Camera Source</label>
+        <select id="cameraSelect"></select>
+      </div>
+
+      <div class="group">
+        <label for="confidence">Confidence Threshold</label>
+        <input id="confidence" type="number" min="0.05" max="0.95" step="0.05" value="0.35" />
+      </div>
+
+      <div class="group">
+        <label for="iou">IoU Threshold</label>
+        <input id="iou" type="number" min="0.1" max="0.95" step="0.05" value="0.45" />
+      </div>
+
+      <div class="group">
+        <div class="checkbox-row">
+          <input id="autoTune" type="checkbox" checked />
+          <label for="autoTune">Auto-tune thresholds</label>
+        </div>
+      </div>
+
+      <button id="startBtn" class="btn-accent">Start Detection</button>
+      <button id="stopBtn" class="btn-stop">Stop</button>
+      <button id="healthBtn">Check Backend Health</button>
+      <button id="applyProviderBtn">Apply Provider</button>
+
+      <div class="status" id="status">Idle. Start detection to begin.</div>
+    </section>
+
+    <section class="viewer">
+      <div class="metrics">
+        <div class="chip" id="fps">FPS: 0.0</div>
+        <div class="chip" id="latency">Inference: 0 ms</div>
+        <div class="chip" id="count">Detections: 0</div>
+      </div>
+
+      <div class="stage">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="overlay"></canvas>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    const overlay = document.getElementById("overlay");
+    const overlayCtx = overlay.getContext("2d");
+    const statusBox = document.getElementById("status");
+
+    const fpsChip = document.getElementById("fps");
+    const latencyChip = document.getElementById("latency");
+    const countChip = document.getElementById("count");
+
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const healthBtn = document.getElementById("healthBtn");
+    const cameraSelect = document.getElementById("cameraSelect");
+    const providerSelect = document.getElementById("providerSelect");
+    const customUrlInput = document.getElementById("customUrl");
+    const classIdsInput = document.getElementById("classIds");
+    const limitClassZeroInput = document.getElementById("limitClassZero");
+    const confidenceInput = document.getElementById("confidence");
+    const iouInput = document.getElementById("iou");
+    const autoTuneInput = document.getElementById("autoTune");
+    const applyProviderBtn = document.getElementById("applyProviderBtn");
+
+    const captureCanvas = document.createElement("canvas");
+    const captureCtx = captureCanvas.getContext("2d");
+
+    let stream = null;
+    let timer = null;
+    let lastTick = performance.now();
+    let autoTuneDefaults = null;
+    let resetTimer = null;
+    let isDetecting = false;
+    let detectionSession = 0;
+
+    function setStatus(text) {
+      statusBox.textContent = text;
+    }
+
+    function parseClassIds(value) {
+      const trimmed = value.trim();
+      if (!trimmed) return null;
+      const ids = trimmed
+        .split(",")
+        .map(v => v.trim())
+        .filter(Boolean)
+        .map(v => Number.parseInt(v, 10))
+        .filter(v => Number.isInteger(v));
+      return ids.length ? ids : null;
+    }
+
+    async function loadProviders() {
+      const r = await fetch("/model/providers");
+      const data = await r.json();
+      if (!data.ok) {
+        setStatus("Failed to load model providers.");
+        return;
+      }
+
+      providerSelect.innerHTML = "";
+      for (const provider of data.providers) {
+        const opt = document.createElement("option");
+        opt.value = provider.id;
+        opt.textContent = provider.label;
+        providerSelect.appendChild(opt);
+      }
+    }
+
+    function applyAutoTuning() {
+      if (!autoTuneDefaults) return;
+      confidenceInput.value = autoTuneDefaults.confidence.toFixed(2);
+      iouInput.value = autoTuneDefaults.iou.toFixed(2);
+      confidenceInput.disabled = true;
+      iouInput.disabled = true;
+    }
+
+    function disableAutoTuning() {
+      confidenceInput.disabled = false;
+      iouInput.disabled = false;
+    }
+
+    async function listCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter(d => d.kind === "videoinput");
+
+      cameraSelect.innerHTML = "";
+      cameras.forEach((cam, i) => {
+        const opt = document.createElement("option");
+        opt.value = cam.deviceId;
+        opt.textContent = cam.label || `Camera ${i + 1}`;
+        cameraSelect.appendChild(opt);
+      });
+
+      if (!cameras.length) {
+        setStatus("No camera found in browser.");
+      }
+    }
+
+    async function startCamera() {
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+
+      const deviceId = cameraSelect.value;
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          deviceId: deviceId ? { exact: deviceId } : undefined,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+
+      video.srcObject = stream;
+      await video.play();
+
+      overlay.width = video.videoWidth;
+      overlay.height = video.videoHeight;
+
+      captureCanvas.width = video.videoWidth;
+      captureCanvas.height = video.videoHeight;
+    }
+
+    function drawDetections(boxes) {
+      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+      overlayCtx.lineWidth = 2;
+      overlayCtx.font = "15px Segoe UI";
+
+      for (const box of boxes) {
+        const left = box.left ?? box.x1 ?? 0;
+        const top = box.top ?? box.y1 ?? 0;
+        const right = box.right ?? box.x2 ?? left;
+        const bottom = box.bottom ?? box.y2 ?? top;
+        const w = right - left;
+        const h = bottom - top;
+        overlayCtx.strokeStyle = "#00ff9d";
+        overlayCtx.fillStyle = "rgba(0, 255, 157, 0.18)";
+        overlayCtx.strokeRect(left, top, w, h);
+        overlayCtx.fillRect(left, top, w, h);
+
+        const name = box.label || box.class_name || "object";
+        const label = `${name} ${(box.score * 100).toFixed(1)}%`;
+        overlayCtx.fillStyle = "#00140e";
+        overlayCtx.fillRect(left, Math.max(0, top - 22), overlayCtx.measureText(label).width + 12, 22);
+        overlayCtx.fillStyle = "#9dffde";
+        overlayCtx.fillText(label, left + 6, Math.max(16, top - 6));
+      }
+    }
+
+    async function detectLoop() {
+      if (!video.videoWidth || !video.videoHeight) {
+        return;
+      }
+
+      if (!isDetecting) {
+        return;
+      }
+
+      const sessionId = detectionSession;
+
+      captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+      const imageData = captureCanvas.toDataURL("image/jpeg", 0.72);
+
+      const conf = parseFloat(confidenceInput.value || "0.35");
+      const iou = parseFloat(iouInput.value || "0.45");
+      let classIds = parseClassIds(classIdsInput.value || "");
+      if (limitClassZeroInput.checked && (!classIds || !classIds.length)) {
+        classIds = [0];
+      }
+      const autoTune = autoTuneInput.checked;
+
+      try {
+        const response = await fetch("/detect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: imageData, conf, iou, class_ids: classIds, auto_tune: autoTune })
+        });
+
+        const result = await response.json();
+        if (!isDetecting || sessionId !== detectionSession) {
+          return;
+        }
+        if (!result.ok) {
+          setStatus(`Detection error: ${result.error}`);
+          return;
+        }
+
+        const detections = result.detections || result.boxes || [];
+        drawDetections(detections);
+        countChip.textContent = `Detections: ${detections.length}`;
+        latencyChip.textContent = `Inference: ${Math.round(result.latency_ms ?? result.inference_ms ?? 0)} ms`;
+
+        const now = performance.now();
+        const fps = 1000 / Math.max(1, now - lastTick);
+        lastTick = now;
+        fpsChip.textContent = `FPS: ${fps.toFixed(1)}`;
+      } catch (err) {
+        setStatus(`Backend request failed: ${err.message}`);
+      }
+    }
+
+    function startDetectionTimer() {
+      if (timer) clearInterval(timer);
+      isDetecting = true;
+      detectionSession += 1;
+      timer = setInterval(detectLoop, 120);
+
+      if (resetTimer) clearInterval(resetTimer);
+      resetTimer = setInterval(() => {
+        overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+        countChip.textContent = "Detections: 0";
+      }, 3000);
+    }
+
+    function stopDetectionTimer() {
+      isDetecting = false;
+      detectionSession += 1;
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      if (resetTimer) {
+        clearInterval(resetTimer);
+        resetTimer = null;
+      }
+    }
+
+    startBtn.addEventListener("click", async () => {
+      try {
+        setStatus("Starting camera...");
+        await startCamera();
+        setStatus("Camera active. Running YOLO detections.");
+        startDetectionTimer();
+      } catch (err) {
+        setStatus(`Camera start failed: ${err.message}`);
+      }
+    });
+
+    stopBtn.addEventListener("click", () => {
+      stopDetectionTimer();
+      overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+      if (video.srcObject) {
+        video.pause();
+        video.srcObject = null;
+        video.load();
+      }
+      lastTick = performance.now();
+      fpsChip.textContent = "FPS: 0.0";
+      latencyChip.textContent = "Inference: 0 ms";
+      countChip.textContent = "Detections: 0";
+      setStatus("Stopped.");
+    });
+
+    healthBtn.addEventListener("click", async () => {
+      try {
+        const r = await fetch("/health");
+        const data = await r.json();
+        if (data.auto_tune || data.tuning) {
+          autoTuneDefaults = data.auto_tune || data.tuning;
+          if (autoTuneInput.checked) {
+            applyAutoTuning();
+          }
+        }
+        setStatus(data.ok ? `Backend ready: ${data.message}` : `Backend not ready: ${data.message}`);
+      } catch (err) {
+        setStatus(`Health check failed: ${err.message}`);
+      }
+    });
+
+    applyProviderBtn.addEventListener("click", async () => {
+      try {
+        const provider = providerSelect.value;
+        const payload = { provider };
+        const customUrl = customUrlInput.value.trim();
+        if (provider === "custom_url") {
+          if (!customUrl) {
+            setStatus("Enter a custom model URL first.");
+            return;
+          }
+          payload.custom_url = customUrl;
+        }
+
+        setStatus("Applying model provider...");
+        const r = await fetch("/model/select", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await r.json();
+        if (!data.ok) {
+          setStatus(`Provider apply failed: ${data.error || data.message}`);
+          return;
+        }
+        setStatus(`Provider applied: ${data.message}`);
+      } catch (err) {
+        setStatus(`Provider apply failed: ${err.message}`);
+      }
+    });
+
+    window.addEventListener("beforeunload", () => {
+      stopDetectionTimer();
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+    });
+
+    autoTuneInput.addEventListener("change", () => {
+      if (autoTuneInput.checked) {
+        applyAutoTuning();
+        if (autoTuneDefaults) {
+          setStatus(`Auto-tune enabled (${autoTuneDefaults.tier} host).`);
+        }
+      } else {
+        disableAutoTuning();
+        setStatus("Auto-tune disabled. Manual thresholds enabled.");
+      }
+    });
+
+    (async () => {
+      try {
+        const preflight = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        preflight.getTracks().forEach(track => track.stop());
+      } catch (_) {
+        // Ignore permission prompt failures until user clicks start.
+      }
+      await loadProviders();
+      await listCameras();
+      try {
+        const r = await fetch("/health");
+        const data = await r.json();
+        if (data.auto_tune || data.tuning) {
+          autoTuneDefaults = data.auto_tune || data.tuning;
+          if (autoTuneInput.checked) {
+            applyAutoTuning();
+          }
+        }
+      } catch (_) {
+        // Ignore health failures during boot.
+      }
+      setStatus("Ready. Pick provider, click Apply Provider, then Start Detection.");
+    })();
+  </script>
+</body>
+</html>

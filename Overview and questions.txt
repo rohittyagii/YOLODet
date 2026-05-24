@@ -1,0 +1,67 @@
+Project Dossier
+This project is a web-first YOLO detection app with a browser UI and a Python Flask backend.
+
+Core entry points:
+- Web UI: web/index.html
+- Backend API: web_yolo_app.py
+- Web launcher: launch_web_yolo.py
+- Environment bootstrap: run.py
+- Windows helper launcher: start.bat
+
+1) Architecture
+
+Layers:
+- Browser UI layer: camera access, frame capture, overlays, metrics
+- Inference API layer: model loading, /health, /detect, /model/providers, /model/select
+- Bootstrap layer: venv creation, dependency install, wizard, launch
+
+2) Technologies
+
+Python
+- Backend logic and model inference
+OpenCV + NumPy
+- Image decode and matrix handling
+Flask
+- Lightweight API server
+Ultralytics YOLO
+- Model loading and inference
+HTML/CSS/JS
+- Browser UI and webcam capture
+
+3) Operational Modes
+
+Web mode
+- `python run.py` launches backend and opens the browser
+Backend-only mode
+- `python run.py --mode backend` serves API without opening a browser
+
+4) Data Flow
+
+Browser captures frame -> sends JPEG data URL to /detect -> backend decodes to OpenCV -> YOLO inference -> boxes returned -> browser renders overlays and metrics.
+
+5) Strengths
+
+- One-command setup and launch
+- Stable webcam access via browser APIs
+- Clear separation of frontend and backend
+- Quick model switching via providers
+
+6) Risks / Limitations
+
+- Heavy dependencies (Ultralytics)
+- Performance depends on hardware
+- HTTP + base64 transport is not the most efficient
+
+7) Likely Questions
+
+Q: Why split browser UI and Python inference?
+A: Browser camera access is typically more reliable, while Python handles ML inference with established libraries.
+
+Q: How do you ensure portability?
+A: run.py auto-creates a venv, installs dependencies, and launches the app consistently.
+
+Q: How would you improve performance?
+A: Use smaller models, reduce capture resolution, and move to binary transport or websockets.
+
+Q: What happens if model download fails?
+A: Use a local .pt model in models/ and select Local Face Model provider.

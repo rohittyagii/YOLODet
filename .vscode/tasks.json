@@ -1,0 +1,59 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Project (Auto Setup)",
+      "type": "shell",
+      "command": "python",
+      "args": ["run.py"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Project Web YOLO (Auto Setup)",
+      "type": "shell",
+      "command": "python",
+      "args": ["run.py", "--mode", "web"],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Project Backend Only (Auto Setup)",
+      "type": "shell",
+      "command": "python",
+      "args": ["run.py", "--mode", "backend"],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Setup Wizard",
+      "type": "shell",
+      "command": "python",
+      "args": ["run.py", "--wizard"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      },
+      "problemMatcher": []
+    }
+  ]
+}

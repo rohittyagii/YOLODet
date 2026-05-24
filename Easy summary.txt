@@ -1,0 +1,18 @@
+Big Picture
+This project is a web-first YOLO detection app that runs a Python backend and uses the browser for webcam capture.
+It is designed for easy demo use with one-command setup and launch.
+
+What It Does
+- Browser captures webcam frames
+- Python backend runs YOLO inference
+- Browser overlays boxes, confidence, FPS, and latency
+- Model providers allow quick switching or custom downloads
+
+How It Runs
+- `python run.py` sets up a local venv, installs deps, and opens the web app
+- `python run.py --mode backend` runs API only
+
+Why It Is Useful
+- Camera access is more reliable in browser
+- Backend inference keeps model logic in Python
+- Clean separation of concerns makes the app easy to maintain

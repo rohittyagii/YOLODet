@@ -1,0 +1,34 @@
+Intro (30 sec)
+Say:
+This is a web-first YOLO detection app with a Python backend and a browser webcam UI.
+It auto-sets up a local virtual environment and launches with one command.
+Point to: run.py, web_yolo_app.py, web/index.html
+
+Quick Demo (2 min)
+Run:
+python run.py
+In browser:
+Click Check Backend Health.
+Apply provider: Ultralytics YOLOv8n.
+Start Detection.
+Show FPS, latency, detections.
+Say:
+Browser handles camera access, backend handles inference.
+
+Backend-only Check (30 sec)
+Run:
+python run.py --mode backend
+Say:
+This mode serves the API without auto-opening a browser.
+
+Fallback Plan (If Something Fails)
+If model download fails:
+Use a local .pt model in models/ and select Local Face Model provider.
+If camera permission blocked:
+Allow camera in browser settings and close other apps using the camera.
+If port is occupied:
+Stop old process and rerun.
+
+Closing (20 sec)
+Say:
+The project demonstrates web camera capture, real-time inference, and clean backend/frontend separation with automatic setup.
