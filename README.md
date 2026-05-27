@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/rohittyagii/YOLODet/actions/workflows/ci.yml/badge.svg)](https://github.com/rohittyagii/YOLODet/actions/workflows/ci.yml)
 
-YOLODet is a beginner-friendly, browser-based YOLO detection app. A Python backend
+YOLODet is a browser-based YOLO detection app. A Python backend
 runs Ultralytics inference while your browser streams webcam frames.
 
 ## Quick Start 
