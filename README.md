@@ -5,7 +5,7 @@
 YOLODet is a beginner-friendly, browser-based YOLO detection app. A Python backend
 runs Ultralytics inference while your browser streams webcam frames.
 
-## Quick Start (Beginner Friendly)
+## Quick Start 
 
 1) Open a terminal in this folder.
 
